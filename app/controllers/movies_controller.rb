@@ -12,6 +12,17 @@ class MoviesController < ApplicationController
 
   def index
     @movies = Movie.all
+    @sort = params[:sort]
+    if !@sort.nil?
+      begin
+        @movies = @movies.order(params[:sort])
+      rescue ActiveRecord::StatementInvalid
+        flash[:warning] = "Movies cant be sorted that way"
+        @movies = @movies.order(params[:sort])
+      end
+    end
+    
+    session[:sort] = @sort
   end
 
   def new
