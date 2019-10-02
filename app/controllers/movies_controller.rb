@@ -1,5 +1,7 @@
 class MoviesController < ApplicationController
 
+  helper_method :select_rating?
+  
   def movie_params
     params.require(:movie).permit(:title, :rating, :description, :release_date)
   end
@@ -11,18 +13,28 @@ class MoviesController < ApplicationController
   end
 
   def index
+    
+    @all_ratings = ['G','PG','PG-13','R']
+    
+    session[:sort] = params[:sort]
+    session[:ratings] = params[:ratings]
     @movies = Movie.all
-    @sort = params[:sort]
-    if !@sort.nil?
-      begin
-        @movies = @movies.order(params[:sort])
-      rescue ActiveRecord::StatementInvalid
-        flash[:warning] = "Movies cant be sorted that way"
-        @movies = @movies.order(params[:sort])
+    
+    if (params[:ratings].nil? && !session[:ratings].nil?) || (params[:sort].nil? && !session[:sort].nil?)
+      redirect_to movies_path("sort" => session[:sort], "ratings" => session[:ratings])
+    elsif !params[:ratings].nil? || !params[:sort].nil?
+      if !params[:ratings].nil?
+        ratings = params[:ratings].keys
+        return @movies = Movie.where(rating: ratings).order(session[:sort])
+      else
+        return @movies = Movie.all.order(session[:sort])
       end
+    elsif !session[:ratings].nil? || !session[:sort].nil?
+      redirect_to movies_path("ratings" => session[:ratings], "sort" => session[:sort], )
+    else
+      return @movies = Movie.all
     end
     
-    session[:sort] = @sort
   end
 
   def new
@@ -51,6 +63,12 @@ class MoviesController < ApplicationController
     @movie.destroy
     flash[:notice] = "Movie '#{@movie.title}' deleted."
     redirect_to movies_path
+  end
+  
+  def select_rating?(rating)
+    select_ratings = session[:ratings]
+    return true if select_ratings.nil?
+    select_ratings.include? rating
   end
 
 end
